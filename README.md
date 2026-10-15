@@ -32,7 +32,7 @@ Run `python manage.py test` after installing requirements and migrating. Manuall
 This is a **single-user local classroom demonstration**, not a hosted production service. There is no login, notification system, or background scheduler. "Automation" means a repeating task automatically receives its next due date **when the user clicks Complete**; it does not run jobs by itself. The database file is created by `migrate` and is intentionally excluded from the ZIP.
 
 ## Demo video
-YouTube URL: 
+YouTube URL: https://youtu.be/bVFqv9P0RwE
 
 ## Helpful references
 - Django tutorial: https://docs.djangoproject.com/en/5.2/intro/tutorial01/
