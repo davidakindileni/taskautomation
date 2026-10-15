@@ -1,0 +1,8 @@
+{% load static %}
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Task Automation</title><link rel="stylesheet" href="{% static 'css/style.css' %}"></head>
+<body><header><div class="container header"><a class="brand" href="{% url 'dashboard' %}">Task Automation</a><a class="button" href="{% url 'task_add' %}">+ Add Task</a></div></header>
+<main class="container">{% for message in messages %}<p class="notice">{{ message }}</p>{% endfor %}{% block content %}{% endblock %}</main>
+<footer class="container">CSE 310 · Django and SQLite · Local classroom project</footer>
+</body></html>

@@ -1,0 +1,7 @@
+{# This reusable card is displayed for each task in the dashboard lists. #}
+<article class="task {% if not task.is_completed and task.next_due_date <= due_soon_limit %}soon{% endif %}">
+<div><h3>{{ task.title }}</h3>{% if task.description %}<p>{{ task.description|linebreaksbr }}</p>{% endif %}
+<p class="meta">{{ task.get_frequency_display }} · Due {{ task.next_due_date|date:'M j, Y' }}{% if task.is_completed %} · Completed{% elif task.next_due_date < today %} · Overdue{% elif task.next_due_date <= due_soon_limit %} · Due soon{% endif %}</p></div>
+<div class="actions"><a href="{% url 'task_edit' task.pk %}">Edit</a>
+{% if not task.is_completed %}<form method="post" action="{% url 'task_complete' task.pk %}">{% csrf_token %}<button type="submit">Complete</button></form>{% endif %}
+<form method="post" action="{% url 'task_delete' task.pk %}" onsubmit="return confirm('Delete this task permanently?');">{% csrf_token %}<button type="submit" class="danger">Delete</button></form></div></article>

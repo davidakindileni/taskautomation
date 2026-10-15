@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>My Tasks</h1><p>Manage your recurring and one-time tasks. Total saved: {{ total }}</p>
+<section><h2>Overdue</h2>{% for task in overdue %}{% include 'tasks/_task_card.html' %}{% empty %}<p class="empty">No overdue tasks.</p>{% endfor %}</section>
+<section><h2>Upcoming Tasks</h2><p class="hint">Tasks due within seven days are highlighted.</p>{% for task in upcoming %}{% include 'tasks/_task_card.html' %}{% empty %}<p class="empty">No upcoming tasks. Add one to get started.</p>{% endfor %}</section>
+<section><h2>Completed One-Time Tasks</h2>{% for task in completed %}{% include 'tasks/_task_card.html' %}{% empty %}<p class="empty">No completed tasks yet.</p>{% endfor %}</section>
+{% endblock %}

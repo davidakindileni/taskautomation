@@ -1,0 +1,6 @@
+# Local-only files that should not be uploaded to GitHub.
+.venv/
+__pycache__/
+*.py[cod]
+db.sqlite3
+.env
