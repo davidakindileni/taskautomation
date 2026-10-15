@@ -4,7 +4,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from .forms import TaskForm
-from .models import Task, next_occurrence
+from .models import Task, TaskCompletion, next_occurrence
 
 class TaskTests(TestCase):
     def setUp(self):
@@ -34,6 +34,13 @@ class TaskTests(TestCase):
         self.assertEqual(self.task.next_due_date, self.today + timedelta(days=7))
         self.assertFalse(self.task.is_completed)
         self.assertIsNotNone(self.task.last_completed_at)
+        entry = TaskCompletion.objects.get(task=self.task)
+        self.assertEqual(entry.scheduled_due_date, self.today)
+        self.assertEqual(entry.task_title, "Water plants")
+        # The next occurrence remains active, while the previous one is recorded.
+        response = self.client.get(reverse("dashboard"))
+        self.assertContains(response, "Completion History")
+        self.assertContains(response, "Completed")
 
     def test_one_time_task_stays_completed(self):
         self.task.frequency = "once"
@@ -41,6 +48,7 @@ class TaskTests(TestCase):
         self.client.post(reverse("task_complete", args=[self.task.pk]))
         self.task.refresh_from_db()
         self.assertTrue(self.task.is_completed)
+        self.assertEqual(TaskCompletion.objects.filter(task=self.task).count(), 1)
 
     def test_changes_require_post(self):
         for name in ("task_complete", "task_delete"):
@@ -56,3 +64,35 @@ class TaskTests(TestCase):
         result = next_occurrence(date(2024, 1, 31), "monthly")
         self.assertGreater(result, self.today)
         self.assertLessEqual(result.day, 31)
+
+    def test_each_recurring_completion_creates_its_own_history_row(self):
+        # Completing a weekly task twice should record two different occurrences.
+        self.client.post(reverse("task_complete", args=[self.task.pk]))
+        self.client.post(reverse("task_complete", args=[self.task.pk]))
+        dates = list(TaskCompletion.objects.filter(task=self.task).values_list("scheduled_due_date", flat=True))
+        self.assertEqual(len(dates), 2)
+        self.assertEqual(set(dates), {self.today, self.today + timedelta(days=7)})
+
+    def test_one_time_completion_is_not_recorded_twice(self):
+        self.task.frequency = "once"
+        self.task.save()
+        self.client.post(reverse("task_complete", args=[self.task.pk]))
+        self.client.post(reverse("task_complete", args=[self.task.pk]))
+        self.assertEqual(TaskCompletion.objects.filter(task=self.task).count(), 1)
+
+    def test_history_displays_completed_recurring_task(self):
+        self.client.post(reverse("task_complete", args=[self.task.pk]))
+        response = self.client.get(reverse("dashboard"))
+        self.assertContains(response, "Completion History")
+        self.assertContains(response, "Water plants")
+        self.assertEqual(len(response.context["history"]), 1)
+        self.assertEqual(len(response.context["upcoming"]), 1)
+
+    def test_delete_task_also_deletes_history(self):
+        self.client.post(reverse("task_complete", args=[self.task.pk]))
+        self.client.post(reverse("task_delete", args=[self.task.pk]))
+        self.assertEqual(TaskCompletion.objects.count(), 0)
+
+    def test_get_cannot_create_history(self):
+        self.assertEqual(self.client.get(reverse("task_complete", args=[self.task.pk])).status_code, 405)
+        self.assertEqual(TaskCompletion.objects.count(), 0)

@@ -1,7 +1,7 @@
 """Database structure and the logic for repeating a task."""
 import calendar
 from datetime import timedelta
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 
@@ -49,12 +49,47 @@ class Task(models.Model):
         return self.title
 
     def complete(self):
-        """Finish a one-time task, or reschedule a repeating task."""
+        """Save a completion event, then finish or reschedule this task.
+
+        Each click produces a history row. Recurring tasks stay active so the
+        next occurrence still appears in Upcoming Tasks. A database transaction
+        keeps the history entry and updated task together.
+        """
         if self.is_completed:
-            return
-        self.last_completed_at = timezone.now()
-        if self.frequency == "once":
-            self.is_completed = True
-        else:
-            self.next_due_date = next_occurrence(self.next_due_date, self.frequency)
-        self.save()
+            return False  # Avoid recording a second completion for a finished task.
+
+        with transaction.atomic():
+            completed_at = timezone.now()
+            previous_due_date = self.next_due_date
+            self.last_completed_at = completed_at
+            if self.frequency == "once":
+                self.is_completed = True
+            else:
+                self.next_due_date = next_occurrence(previous_due_date, self.frequency)
+            self.save()
+            TaskCompletion.objects.create(
+                task=self,
+                task_title=self.title,
+                scheduled_due_date=previous_due_date,
+                completed_at=completed_at,
+            )
+        return True
+
+
+class TaskCompletion(models.Model):
+    """A permanent record of one completed occurrence of a task.
+
+    A title snapshot keeps the history understandable if a task is renamed.
+    Deleting a task also deletes its history (CASCADE), by design.
+    """
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="completions")
+    task_title = models.CharField(max_length=120)
+    scheduled_due_date = models.DateField()
+    completed_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-completed_at", "-pk"]
+
+    def __str__(self):
+        return f"{self.task_title} completed on {self.completed_at:%Y-%m-%d}"
+

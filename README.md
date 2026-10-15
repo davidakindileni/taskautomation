@@ -3,7 +3,7 @@
 **Course:** CSE 310 – Applied Programming | **Module:** 3 – Web Apps
 
 ## Overview
-A simple Django web application for managing one-time and recurring tasks. It uses SQLite, dynamic HTML pages, and validated forms. The dashboard displays overdue, upcoming, due-soon (within 7 days), and completed one-time tasks.
+A simple Django web application for managing one-time and recurring tasks. It uses SQLite, dynamic HTML pages, and validated forms. The dashboard displays overdue, upcoming, due-soon (within 7 days), and completed one-time tasks, plus a separate completion history for all finished occurrences.
 
 ## Quick start (Windows PowerShell)
 ```powershell
@@ -20,7 +20,7 @@ Open http://127.0.0.1:8000/ in your browser. See `INSTALLATION_GUIDE.pdf` for de
 - `/tasks/new/` creates a task with a validated form.
 - `/tasks/<id>/edit/` edits an existing task.
 - POST-only complete and delete actions change saved records.
-- For repeating tasks, **Complete** records the completion and advances the due date; the task remains active. For one-time tasks, it moves to Completed.
+- For repeating tasks, **Complete** creates a completion-history record and advances the due date; the task remains active for its next occurrence. For one-time tasks, it moves to Finished One-Time Tasks and also appears in Completion History.
 
 ## Tools and technologies
 Python 3.12, Django 5.2, HTML, CSS, SQLite, and a web browser. No external services or JavaScript packages are required.
@@ -43,4 +43,18 @@ YouTube URL:
 - SQLite: https://www.sqlite.org/docs.html
 
 ## Future work
-Add user accounts, reminders, a completion history, and background scheduling.
+Add user accounts, reminders, history filtering/export, and background scheduling.
+
+## Updating an existing installation
+If you already have a `db.sqlite3` database, **back it up** before replacing files.
+Replace the project code, keep your existing database, then run:
+
+```powershell
+python manage.py migrate
+python manage.py test
+python manage.py runserver
+```
+
+The `0002_taskcompletion` migration adds a new table and preserves existing tasks.
+Old completions cannot be reconstructed reliably, so history begins with completions
+made after this update. Deleting a task also deletes its completion history.
